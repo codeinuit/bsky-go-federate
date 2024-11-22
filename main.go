@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/codeinuit/bsky-go-federate/internal/federation"
@@ -12,9 +12,10 @@ import (
 
 func main() {
 	var tooter federation.Federation
+	log := slog.Default()
 
 	if err := godotenv.Load(); err != nil {
-		fmt.Printf("error occurred :%w", err)
+		log.Error("error occurred: ", err.Error())
 	}
 
 	host := os.Getenv("MASTODON_SERVER_URL")
@@ -23,7 +24,7 @@ func main() {
 	at := os.Getenv("MASTODON_APP_ACCESS_TOKEN")
 
 	tooter = mastodon.NewClient(host, cid, csecret, at)
-	err := tooter.Post(context.Background(), "ouifi")
-
-	fmt.Printf("%w\n", err)
+	if err := tooter.Post(context.Background(), "ouifi"); err != nil {
+		log.Error("could not post to mastodon: ", err.Error())
+	}
 }
