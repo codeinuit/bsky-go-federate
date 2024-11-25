@@ -83,6 +83,11 @@ func (bs *BSkyService) Listen(ctx context.Context) error {
 			continue
 		}
 
+		if post.Reply != nil {
+			slog.Debug("reply received; skipping...")
+			continue
+		}
+
 		bs.Callback(ctx, post.Text)
 	}
 }
