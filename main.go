@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/bluesky-social/indigo/api/bsky"
+	"github.com/codeinuit/bsky-go-federate/internal/federation"
 	"github.com/codeinuit/bsky-go-federate/internal/federation/mastodon"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
@@ -24,7 +25,7 @@ type Commit struct {
 	Record json.RawMessage `json:"record,omitempty`
 }
 
-func bskyFiresky(ctx context.Context) error {
+func bskyJetstreamWithCallback(ctx context.Context, callback func(context.Context, string) error) error {
 	d := websocket.DefaultDialer
 	datachansempai := make(chan Message)
 
@@ -61,12 +62,6 @@ func bskyFiresky(ctx context.Context) error {
 			con.Close()
 			return nil
 		case message = <-datachansempai:
-
-		}
-
-		if err != nil {
-			slog.Error(err.Error())
-			continue
 		}
 
 		var post bsky.FeedPost
@@ -75,16 +70,17 @@ func bskyFiresky(ctx context.Context) error {
 			continue
 		}
 
-		slog.Info(post.Text)
+		callback(ctx, post.Text)
 	}
 }
 
 func main() {
-	//var tooter federation.Federation
-	log := slog.Default()
+	var tooter federation.Federation
 
 	if err := godotenv.Load(); err != nil {
-		log.Error("error occurred: ", err.Error())
+		slog.Error("error occurred: " + err.Error())
+
+		os.Exit(1)
 	}
 
 	host := os.Getenv("MASTODON_SERVER_URL")
@@ -92,7 +88,7 @@ func main() {
 	csecret := os.Getenv("MASTODON_APP_CLIENT_SECRET")
 	at := os.Getenv("MASTODON_APP_ACCESS_TOKEN")
 
-	_ = mastodon.NewClient(host, cid, csecret, at)
+	tooter = mastodon.NewClient(host, cid, csecret, at)
 
-	bskyFiresky(context.Background())
+	bskyJetstreamWithCallback(context.Background(), tooter.Post)
 }
